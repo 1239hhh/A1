@@ -1,0 +1,6 @@
+[
+  {"question":"What should an employee do if they still cannot sign in?", "relevant_sources":["example_handbook.md"]},
+  {"question":"What should never be included in a support ticket?", "relevant_sources":["example_handbook.md"]},
+  {"question":"What should be done when a laptop is lost?", "relevant_sources":["example_handbook.md"]},
+  {"question":"How should a suspected phishing message be reported?", "relevant_sources":["example_handbook.md"]}
+]
