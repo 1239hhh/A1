@@ -16,17 +16,22 @@ TXT/Markdown → source-aware chunking → BGE-M3 embeddings → FAISS retrieval
 - `.env.example` and `.gitignore` keep credentials out of source control.
 
 ## Windows quick start
+Run commands from the repository root in PowerShell:
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 Copy-Item .env.example .env
-uvicorn app.main:app --reload
+pytest -q
+uvicorn app:app --reload
 ```
 
-Set `LLM_API_KEY` in `.env` before querying. Never commit `.env`. Open http://127.0.0.1:8000/docs, call `POST /ingest`, then `POST /query`.
+If PowerShell blocks virtual-environment activation, use `.venv\\Scripts\\python.exe -m pip install -r requirements.txt` and `.venv\\Scripts\\python.exe -m pytest -q` instead. Installing requirements installs pytest; do not run tests before that step.
 
-Run checks with `pytest -q`. Run `python -m app.evaluate` after indexing. The bundled four-question set is a smoke test only; expand it with manually verified questions before claiming performance improvements.
+Set `LLM_API_KEY` in `.env` before querying. Never commit `.env`. Open http://127.0.0.1:8000/docs, call `POST /ingest`, then `POST /query`. The root `app.py` is a convenience entry point; the FastAPI implementation is in `app/main.py`.
+
+Run `python -m app.evaluate` after indexing. The bundled four-question set is a smoke test only; expand it with manually verified questions before claiming performance improvements.
 
 ## Honest evaluation notes
 The evidence gate is currently a transparent length heuristic, not a semantic judge. The retry uses deterministic query reformulation. Evaluate both against a labelled baseline rather than assuming they improve quality. PDF ingestion, authentication, CI, and deployment hardening are future work.
