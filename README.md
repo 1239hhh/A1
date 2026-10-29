@@ -1,40 +1,104 @@
-# EvidenceFlow — Enterprise Knowledge Agent
+# EvidenceFlow | Enterprise Knowledge Agent
 
-A source-grounded enterprise Q&A portfolio project built around BGE-M3, FAISS, BGE cross-encoder reranking, LangGraph and FastAPI.
+EvidenceFlow is a source-grounded question-answering system for internal knowledge bases. It combines dense retrieval, cross-encoder reranking, and a bounded LangGraph workflow to produce answers with source references or abstain when retrieved evidence is insufficient.
 
-> **Status:** initial implementation scaffold. Run the checks and complete the evaluation before reporting measured performance in a CV. The bundled handbook is synthetic.
+## Highlights
+
+- **Retrieval pipeline:** BGE-M3 embeddings and FAISS similarity search, followed by BGE reranking.
+- **Agent orchestration:** LangGraph nodes for retrieval, evidence sufficiency checks, bounded retry, and answer generation.
+- **Grounded responses:** source filenames and chunk identifiers are carried into the generation context for traceability.
+- **FastAPI service:** HTTP endpoints for health checks, document ingestion, and question answering.
+- **Retrieval evaluation:** a small evaluation harness reports Recall@K and MRR@K against labelled relevant sources.
+- **Configuration hygiene:** environment-based model settings and Git exclusions for local secrets.
 
 ## Architecture
-TXT/Markdown → source-aware chunking → BGE-M3 embeddings → FAISS retrieval → BGE reranking → LangGraph evidence check / bounded retry → cited answer or safe abstention → FastAPI.
 
-## Features
-- Source/chunk metadata preserved through retrieval.
-- BGE-M3 dense embeddings, FAISS similarity search, BGE reranking.
-- LangGraph workflow with evidence checks, bounded retries, and safe abstention.
-- FastAPI endpoints: `/health`, `/ingest`, `/query`.
-- Small Recall@K / MRR@K evaluation harness.
-- `.env.example` and `.gitignore` keep credentials out of source control.
+```text
+TXT / Markdown files
+        |
+        v
+Chunking + source metadata
+        |
+        v
+BGE-M3 embeddings -> FAISS retrieval
+        |
+        v
+BGE cross-encoder reranking
+        |
+        v
+LangGraph evidence check
+   | sufficient       | insufficient
+   v                  v
+Answer with sources   Bounded retry -> answer or abstain
+        |
+        v
+      FastAPI
+```
 
-## Windows quick start
-Run commands from the repository root in PowerShell:
+## Technology
+
+Python · FastAPI · LangGraph · LangChain · BGE-M3 · FAISS · BGE Reranker · pytest
+
+## Run locally (Windows / PowerShell)
+
+Run these commands from the repository root:
+
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
-pytest -q
-uvicorn app.main:app --reload
 ```
 
-If PowerShell blocks virtual-environment activation, use `.venv\\Scripts\\python.exe -m pip install -r requirements.txt` and `.venv\\Scripts\\python.exe -m pytest -q` instead. Installing requirements installs pytest; do not run tests before that step.
+Set `LLM_API_KEY` in `.env` to a valid compatible chat-completions API key. Keep `.env` private and never commit it.
 
-Set `LLM_API_KEY` in `.env` before querying. Never commit `.env`. Open http://127.0.0.1:8000/docs, call `POST /ingest`, then `POST /query`. The FastAPI entry point is `app.main:app` (the `app/` package contains the application). Avoid `uvicorn app:app`, because the root `app.py` conflicts with the `app/` package name.
+Start the API:
 
-Run `python -m app.evaluate` after indexing. The bundled four-question set is a smoke test only; expand it with manually verified questions before claiming performance improvements.
+```powershell
+python -m uvicorn app.main:app --reload
+```
 
-## Honest evaluation notes
-The evidence gate is currently a transparent length heuristic, not a semantic judge. The retry uses deterministic query reformulation. Evaluate both against a labelled baseline rather than assuming they improve quality. PDF ingestion, authentication, CI, and deployment hardening are future work.
+Open [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
-## Reference
-The high-level design was informed by studying [pratham-jaiswal/agentic-rag](https://github.com/pratham-jaiswal/agentic-rag), an MIT-licensed project. No source files are copied into this implementation.
+## API
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/health` | Check service and index status |
+| POST | `/ingest` | Chunk supported TXT/Markdown files and build the vector index |
+| POST | `/query` | Retrieve evidence and generate a source-grounded answer |
+
+To ingest the included example handbook, call `POST /ingest` before sending a question to `POST /query`.
+
+Example request:
+
+```json
+{
+  "question": "What should an employee do if they still cannot sign in?"
+}
+```
+
+## Tests and evaluation
+
+Run the unit tests:
+
+```powershell
+python -m pytest -q
+```
+
+After ingesting documents, run the retrieval evaluation:
+
+```powershell
+python -m app.evaluate
+```
+
+The evaluation script reports Recall@K and MRR@K on the questions in `evals/golden_qa.json`. For a meaningful comparison, expand the dataset with manually verified questions and compare retrieval configurations using the same labelled set. No benchmark result is claimed in this repository.
+
+## Current scope
+
+The ingestion pipeline currently supports TXT and Markdown. The evidence sufficiency gate is a configurable length-based heuristic, and the retry applies a deterministic query reformulation. PDF ingestion, a semantic evidence judge, authentication, and deployment automation are potential next improvements.
+
+## Acknowledgement
+
+The design was informed by studying [pratham-jaiswal/agentic-rag](https://github.com/pratham-jaiswal/agentic-rag), an MIT-licensed reference project. This repository's implementation and evaluation should be reviewed and extended as part of the portfolio project.
