@@ -24,12 +24,12 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 pytest -q
-uvicorn app:app --reload
+uvicorn app.main:app --reload
 ```
 
 If PowerShell blocks virtual-environment activation, use `.venv\\Scripts\\python.exe -m pip install -r requirements.txt` and `.venv\\Scripts\\python.exe -m pytest -q` instead. Installing requirements installs pytest; do not run tests before that step.
 
-Set `LLM_API_KEY` in `.env` before querying. Never commit `.env`. Open http://127.0.0.1:8000/docs, call `POST /ingest`, then `POST /query`. The root `app.py` is a convenience entry point; the FastAPI implementation is in `app/main.py`.
+Set `LLM_API_KEY` in `.env` before querying. Never commit `.env`. Open http://127.0.0.1:8000/docs, call `POST /ingest`, then `POST /query`. The FastAPI entry point is `app.main:app` (the `app/` package contains the application). Avoid `uvicorn app:app`, because the root `app.py` conflicts with the `app/` package name.
 
 Run `python -m app.evaluate` after indexing. The bundled four-question set is a smoke test only; expand it with manually verified questions before claiming performance improvements.
 
